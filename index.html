@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fogata Virtual - Microrelatos</title>
+    <!-- Incluir Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes flicker-outer {
+            0%, 100% { transform: scale(1) rotate(-45deg); opacity: 0.8; }
+            25% { transform: scale(1.05) rotate(-46deg); opacity: 0.9; }
+            50% { transform: scale(0.95) rotate(-44deg); opacity: 1; }
+            75% { transform: scale(1.02) rotate(-45deg); opacity: 0.85; }
+        }
+        @keyframes flicker-inner {
+            0%, 100% { transform: scale(1) rotate(-45deg) translateY(0); opacity: 1; }
+            50% { transform: scale(0.9) rotate(-45deg) translateY(5px); opacity: 0.8; }
+        }
+        @keyframes spark-rise {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            50% { opacity: 1; }
+            100% { transform: translate(calc(-50px + 100px * var(--rnd-x)), -200px) scale(0); opacity: 0; }
+        }
+        @keyframes shooting-star {
+            0% { transform: translateX(0) translateY(0) rotate(-45deg); opacity: 1; }
+            100% { transform: translateX(-1000px) translateY(1000px) rotate(-45deg); opacity: 0; }
+        }
+        @keyframes glow-pulse {
+            0%, 100% { box-shadow: 0 0 40px 10px rgba(255, 100, 0, 0.4); }
+            50% { box-shadow: 0 0 60px 20px rgba(255, 100, 0, 0.6); }
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        @keyframes fade-in {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        body {
+            margin: 0;
+            overflow-x: hidden;
+            background-color: #02010a;
+        }
+
+        .sky-gradient {
+            background: linear-gradient(to bottom, #02010a 0%, #0d0c1d 40%, #1a0b12 100%);
+        }
+
+        .moon {
+            position: absolute;
+            top: 50px;
+            right: 100px;
+            width: 80px;
+            height: 80px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 30px 5px rgba(255, 255, 255, 0.5), inset -15px -15px 20px rgba(0,0,0,0.2);
+            z-index: 0;
+        }
+
+        .campfire-wrapper {
+            position: relative;
+            width: 250px;
+            height: 250px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+        }
+        .log-3d {
+            position: absolute;
+            bottom: 20px;
+            width: 140px;
+            height: 35px;
+            background: linear-gradient(to bottom, #3b2313, #1c0f06);
+            border-radius: 15px;
+            border: 2px solid #000;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.8), inset 0 5px 10px rgba(255,255,255,0.1);
+        }
+        .log-1 { transform: rotate(25deg); z-index: 3; }
+        .log-2 { transform: rotate(-25deg); z-index: 2; }
+        .log-3 { transform: rotate(90deg) scale(0.8); z-index: 1; bottom: 30px; filter: brightness(0.6); }
+        
+        .flame {
+            position: absolute;
+            bottom: 40px;
+            border-radius: 50% 0 50% 50%;
+            transform: rotate(-45deg);
+            mix-blend-mode: screen;
+        }
+        .flame-outer {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #ff4500 0%, #ff8c00 100%);
+            animation: flicker-outer 1.2s infinite ease-in-out;
+            filter: blur(4px);
+            z-index: 4;
+        }
+        .flame-middle {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #ff8c00 0%, #ffd700 100%);
+            animation: flicker-inner 0.8s infinite ease-in-out reverse;
+            bottom: 50px;
+            z-index: 5;
+        }
+        .flame-inner {
+            width: 40px;
+            height: 40px;
+            background: #fffafa;
+            animation: flicker-inner 0.5s infinite alternate;
+            bottom: 60px;
+            box-shadow: 0 0 20px #fff;
+            z-index: 6;
+        }
+        .base-glow {
+            position: absolute;
+            bottom: 10px;
+            width: 200px;
+            height: 40px;
+            background: rgba(255, 100, 0, 0.5);
+            border-radius: 50%;
+            filter: blur(20px);
+            animation: glow-pulse 2s infinite;
+            z-index: 0;
+        }
+        
+        .presentation-card {
+            background: rgba(15, 15, 20, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 140, 0, 0.3);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), inset 0 0 30px rgba(255, 100, 0, 0.05);
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        /* Barra de desplazamiento (Scrollbar) personalizada para la tarjeta */
+        .presentation-card::-webkit-scrollbar {
+            width: 8px;
+        }
+        .presentation-card::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+        }
+        .presentation-card::-webkit-scrollbar-thumb {
+            background: rgba(255, 140, 0, 0.6);
+            border-radius: 8px;
+        }
+
+        .animate-float {
+            animation: float 0.5s ease-out forwards;
+        }
+
+        .animate-fade-in {
+            animation: fade-in 0.4s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="min-h-screen sky-gradient text-slate-200 font-sans overflow-hidden relative flex flex-col">
+
+    <!-- Elementos del cielo (se generan por JS) -->
+    <div class="moon"></div>
+    <div id="bg-elements-container" class="absolute inset-0 pointer-events-none z-0"></div>
+
+    <!-- Barra de Progreso Superior -->
+    <div class="absolute top-0 left-0 w-full p-4 md:p-6 z-20 flex justify-center">
+        <div class="w-full max-w-4xl bg-gray-900/60 rounded-full h-3 overflow-hidden border border-gray-700 backdrop-blur-sm">
+            <div id="progress-bar" class="h-full bg-gradient-to-r from-orange-600 via-yellow-500 to-orange-400 transition-all duration-700 ease-out shadow-[0_0_10px_rgba(255,165,0,0.8)]" style="width: 0%;"></div>
+        </div>
+    </div>
+
+    <!-- Layout Principal -->
+    <div class="flex-1 flex flex-col lg:flex-row items-center justify-center p-4 md:p-8 lg:p-12 z-10 max-w-[90rem] mx-auto w-full gap-8 md:gap-12 mt-16 lg:mt-0">
+        
+        <!-- Columna Izquierda: Fogata -->
+        <div class="flex flex-col items-center justify-center lg:w-1/3 mt-8 lg:mt-0 shrink-0">
+            <div class="campfire-wrapper scale-75 md:scale-100">
+                <div class="base-glow"></div>
+                <!-- Leños -->
+                <div class="log-3d log-3"></div>
+                <div class="log-3d log-2"></div>
+                <div class="log-3d log-1"></div>
+                <!-- Llamas -->
+                <div class="flame flame-outer"></div>
+                <div class="flame flame-middle"></div>
+                <div class="flame flame-inner"></div>
+                <!-- Chispas (generadas por JS) -->
+                <div id="sparks-container"></div>
+            </div>
+            <p id="step-indicator" class="mt-8 md:mt-16 text-orange-400/80 font-bold text-base md:text-lg tracking-[0.2em] text-center uppercase drop-shadow-[0_0_5px_rgba(255,100,0,0.8)]">
+                LA FOGATA ESTÁ LISTA
+            </p>
+        </div>
+
+        <!-- Columna Derecha: Tarjeta de Presentación -->
+        <div class="w-full lg:w-2/3 max-w-3xl">
+            <div id="presentation-card" class="presentation-card rounded-2xl md:rounded-3xl p-6 md:p-12 transition-all duration-500">
+                <!-- Contenido dinámico -->
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- DATOS DE LAS HISTORIAS ---
+        const storiesData = [
+            {
+                type: 'intro',
+                title: '🏕️ Campamento Virtual',
+                subtitle: 'Microrelatos de terror estudiantil en la virtualidad',
+                text: 'Bienvenidos a la fogata. Apaguen las luces, acomódense frente a la pantalla y prepárense para escuchar las historias más escalofriantes que jamás se hayan contado a través de una conexión Wi-Fi.\n\nHoy no solo escucharán... también tendrán que participar.',
+                buttonText: 'Encender la fogata 🔥'
+            },
+            {
+                type: 'story',
+                id: 1,
+                title: '1. El trabajo en grupo… sin grupo 👥',
+                text: '“Eran las 11:56 p.m. Faltaban 4 minutos para subir el trabajo. Yo escribía, editaba, diagramaba y respiraba agitado. Lo que me perturbaba no era la entrega, sino que en la portada, aún brillaban los nombres de tres personas… que jamás respondieron.”',
+                activity: {
+                    type: 'poll',
+                    title: '🔸 Votación Exprés (Respondamos en el Chat)',
+                    question: '¿Qué es más aterrador?',
+                    options: [
+                        'A) Que nadie aparezca en el trabajo grupal',
+                        'B) Que aparezcan en la entrega… sin hacer nada',
+                        'C) Que todos esperen que tú hagas TODO'
+                    ]
+                }
+            },
+            {
+                type: 'story',
+                id: 2,
+                title: '2. La cámara del otro lado 👁️',
+                text: '“Conectó su cámara como siempre. Pero algo no estaba bien. En el recuadro pequeño, además de su rostro... había alguien más, justo detrás. Nadie más lo vio. O eso creía. Hasta que el profe dijo: ‘Hay una persona detrás de ti’. Ella estaba sola en casa.”',
+                activity: {
+                    type: 'chat',
+                    title: '🔸 Reacción Inmediata',
+                    question: '¿Te ha pasado que se filtre algo extraño o alguien inesperado en una clase virtual? Envía al chat de Teams tu “nivel de susto” usando solo EMOJIS.',
+                }
+            },
+            {
+                type: 'story',
+                id: 3,
+                title: '3. Silencio en la sala de espera ⏳',
+                text: '“Entró puntual. La sala estaba vacía. Esperó 20 minutos. Silencio. Pensó que quizás la clase no iba hoy. Cerró la ventana. Un segundo después... llegó el correo: ‘Se registró su ausencia a la sesión sincrónica’.”',
+                activity: {
+                    type: 'poll',
+                    title: '🔸 Mini-votación en el Chat',
+                    question: '¿Qué haces cuando nadie más ha entrado a tu clase virtual?',
+                    options: [
+                        'A) Entro en pánico existencial',
+                        'B) Salgo y vuelvo a entrar obsesivamente',
+                        'C) Me convenzo de que era asincrónica y me voy a ver Netflix'
+                    ]
+                }
+            },
+            {
+                type: 'story',
+                id: 4,
+                title: '4. El parcial eterno ⏱️',
+                text: '“Era un parcial virtual con tiempo limitado. Entró a las 7:00 p.m. Una pregunta. Dos. Cinco. A las 7:45 se detuvo. Las letras se desordenaban. Ya no recordaba su nombre. Miró el reloj. ¡7:58! Quedaban dos minutos y diez preguntas. Presionó ‘enviar’. Pantalla en negro.”',
+                activity: {
+                    type: 'chat',
+                    title: '🔸 Reto de Estrés',
+                    question: 'Escribe en el chat de Teams, SIN PENSARLO, una frase con 3 errores ortográficos. ¡Demuestra cómo se siente escribir en un examen con el tiempo en contra!',
+                }
+            },
+            {
+                type: 'story',
+                id: 5,
+                title: '5. La voz que no era la suya 🎙️',
+                text: '“En medio de la exposición grupal, él encendió el micrófono para leer su parte. Pero su voz no salió. En cambio, una voz grave y distorsionada dijo: ‘Tú no hiciste esto, ¿verdad?’…”',
+                activity: {
+                    type: 'poll',
+                    title: '🔸 Votación Abierta',
+                    question: 'Confiesen en el chat: ¿Cuál es su mayor miedo en una exposición virtual?',
+                    options: [
+                        'A) Que el audio no funcione en el momento clave',
+                        'B) Que te toque hablar primero',
+                        'C) Que se note que improvisaste absolutamente todo'
+                    ]
+                }
+            },
+            {
+                type: 'story',
+                id: 6,
+                title: '6. Confesiones en la virtualidad 🤐',
+                text: 'Llegó el momento de sincerarnos. Todos tenemos un esqueleto guardado en el clóset de la virtualidad. Un micrófono que se quedó abierto, una cámara que apuntó donde no debía...',
+                activity: {
+                    type: 'mic',
+                    title: '🔸 Micrófono Abierto',
+                    question: '¿A quién le ha pasado algo parecido? Levanten la mano en Teams. ¡Es momento de abrir el micrófono y contar en tono gracioso su experiencia más incómoda o insólita en la virtualidad!',
+                }
+            },
+            {
+                type: 'transition',
+                title: 'Cierre del primer bloque 🌑',
+                text: '“En este espacio académico… nadie puede oír tus gritos… si estás en silencio y sin cámara.”',
+                subtitle: '👻 “Historias desde el Wi-Fi del más allá” – Parte 2\nPreparen sus teclados para la segunda ronda.',
+                buttonText: 'Adentrarse en la oscuridad 🔦'
+            },
+            {
+                type: 'story',
+                id: 7,
+                title: '7. El archivo maldito 📄',
+                text: '“Con esmero, revisó mil veces el documento. Ortografía perfecta. Gráficas hermosas. A las 11:59 p.m., lo subió. Satisfecho, cerró todo. A la mañana siguiente… el profesor escribió: ‘¿Podrías explicar por qué subiste tu hoja de vida en lugar del ensayo?’”',
+                activity: {
+                    type: 'poll',
+                    title: '🔸 Votación Rápida (A, B o C en el chat)',
+                    question: '¿Cuál es tu error más común en entregas virtuales?',
+                    options: [
+                        'A) Enviar el archivo equivocado',
+                        'B) Subirlo sin adjuntar nada (el clásico)',
+                        'C) Subirlo… ¡pero al foro/materia que no era!'
+                    ]
+                }
+            },
+            {
+                type: 'story',
+                id: 8,
+                title: '8. La parálisis de la presentación final 🥶',
+                text: '“La cámara encendida, el micrófono en verde, el PowerPoint listo. Era su defensa de trabajo de grado. Apretó ‘presentar’. Silencio. La pantalla no cambió. Su voz no se oía. ‘¿Estás compartiendo?’, dijo alguien. Él solo veía negro. Como su futuro.”',
+                activity: {
+                    type: 'chat',
+                    title: '🔸 Reto Creativo',
+                    question: 'Escribe en el chat UNA SOLA PALABRA que gritarías mentalmente en ese exacto momento (sin decir groserías 😅).',
+                }
+            },
+            {
+                type: 'story',
+                id: 9,
+                title: '9. La venganza del profesor reciclado 🧟‍♂️',
+                text: '“Pasaron tres semestres desde esa materia infernal. Juró no volver a verle. Pero entonces, al abrir el nuevo curso virtual… ahí estaba. Mismo tono. Misma foto. Mismo apellido. Era él. Y ahora… dirigía su seminario de grado.”',
+                activity: {
+                    type: 'poll',
+                    title: '🔸 Votación con Emojis en el Chat',
+                    question: '¿Qué harías tú si te vuelve a tocar ese profe?',
+                    options: [
+                        '🙈 Aguanto porque necesito pasar',
+                        '🙃 Intento simpatizar (otra vez)',
+                        '💀 Renuncio a la carrera y me voy al monte'
+                    ]
+                }
+            },
+            {
+                type: 'story',
+                id: 10,
+                title: '10. El vaso que lo arruinó todo 🥛',
+                text: '“Era la última pregunta. El parcial estaba casi listo. Quedaban dos minutos. Decidió tomar un sorbo de jugo. Sonó un golpe. El líquido cayó sobre el teclado. Pantalla azul. Silencio. Luego… la cara del sistema: ‘Tu tiempo ha expirado’.”',
+                activity: {
+                    type: 'chat',
+                    title: '🔸 Mini-juego en el Chat',
+                    question: 'Escribe una excusa rápida y que suene creíble para el profesor… PERO tu excusa debe incluir obligatoriamente: Un vaso, un gato o una planta.',
+                }
+            },
+            {
+                type: 'story',
+                id: 11,
+                title: '11. El micrófono que traiciona 🤫',
+                text: '“Pensó que lo había apagado. Pensó que nadie oía. Pensó que podía hablar con su hermana mientras la clase seguía. Y justo cuando dijo: ‘Este man habla como si supiera, pero no se le entiende nada’… el profe respondió: ‘¿Me estás hablando a mí?’”',
+                activity: {
+                    type: 'poll',
+                    title: '🔸 Votación Interactiva Final',
+                    question: '¿Cuál es el mayor riesgo de un micrófono abierto?',
+                    options: [
+                        'A) Que se te escape un comentario desafortunado',
+                        'B) Que suene tu mamá regañándote por no lavar los platos',
+                        'C) Que se escuche lo que no debía escucharse'
+                    ]
+                }
+            },
+            {
+                type: 'outro',
+                title: 'Amanecer en el Campamento 🌅',
+                text: 'Después de tanto susto, risas y “¿a mí también me pasó eso?”, es momento de recordar algo esencial:\n\nEn la virtualidad, en lo académico, y en la vida, no todo saldrá perfecto… y no tiene que salirlo.\n\nLo que hoy parecía una historia de terror, mañana será anécdota. Y lo importante no es evitar el error… sino aprender, reír (si se puede), y seguir adelante.',
+                buttonText: 'Apagar la fogata y volver a clase 🎓'
+            }
+        ];
+
+        // --- ESTADO DE LA APLICACIÓN ---
+        let currentStep = 0;
+        let phase = 'story'; // 'story' o 'activity'
+
+        // --- FUNCIONES DE INICIO ---
+        function generateBackground() {
+            const container = document.getElementById('bg-elements-container');
+            const sparksContainer = document.getElementById('sparks-container');
+            
+            // Estrellas estáticas
+            for(let i=0; i<60; i++) {
+                const star = document.createElement('div');
+                star.className = 'absolute bg-white rounded-full';
+                const size = Math.random() * 3 + 1;
+                const duration = Math.random() * 3 + 2;
+                const delay = Math.random() * 2;
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.animation = `twinkle ${duration}s infinite ease-in-out`;
+                star.style.animationDelay = `${delay}s`;
+                star.style.opacity = Math.random() * 0.8 + 0.2;
+                container.appendChild(star);
+            }
+
+            // Estrellas fugaces
+            for(let i=0; i<3; i++) {
+                const ss = document.createElement('div');
+                ss.className = 'absolute w-1 h-1 bg-white rounded-full shadow-[0_0_10px_2px_#fff]';
+                const duration = Math.random() * 4 + 4;
+                const delay = Math.random() * 10;
+                ss.style.top = `${Math.random() * 30}%`;
+                ss.style.left = `${Math.random() * 50 + 50}%`;
+                ss.style.animation = `shooting-star ${duration}s linear infinite`;
+                ss.style.animationDelay = `${delay}s`;
+
+                const tail = document.createElement('div');
+                tail.className = 'absolute top-0 right-0 w-20 h-px bg-gradient-to-l from-white to-transparent transform -translate-y-1/2';
+                ss.appendChild(tail);
+
+                container.appendChild(ss);
+            }
+
+            // Chispas de la fogata
+            for(let i=0; i<12; i++) {
+                const spark = document.createElement('div');
+                spark.className = 'absolute w-2 h-2 bg-yellow-300 rounded-full mix-blend-screen';
+                spark.style.setProperty('--rnd-x', Math.random());
+                spark.style.left = '50%';
+                spark.style.bottom = '60px';
+                spark.style.boxShadow = '0 0 8px 2px #ff8c00';
+                spark.style.animation = `spark-rise ${1.5 + Math.random() * 1.5}s linear infinite`;
+                spark.style.animationDelay = `${Math.random() * 2}s`;
+                sparksContainer.appendChild(spark);
+            }
+        }
+
+        // --- LÓGICA DE RENDERIZADO ---
+        function renderContent() {
+            const story = storiesData[currentStep];
+            const isSpecialSlide = story.type === 'intro' || story.type === 'transition' || story.type === 'outro';
+            
+            // Actualizar barra de progreso
+            const progressPercentage = (currentStep / (storiesData.length - 1)) * 100;
+            document.getElementById('progress-bar').style.width = `${progressPercentage}%`;
+            
+            // Actualizar indicador de paso
+            document.getElementById('step-indicator').innerText = currentStep === 0 ? "La fogata está lista" : `Relato ${currentStep} de 11`;
+
+            const card = document.getElementById('presentation-card');
+            
+            // Hacer scroll hacia arriba cuando cambia el contenido
+            card.scrollTop = 0;
+            
+            if (isSpecialSlide) {
+                // Reemplazar saltos de línea por <br>
+                const formattedSubtitle = story.subtitle ? story.subtitle.replace(/\n/g, '<br>') : '';
+                const formattedText = story.text.replace(/\n/g, '<br><br>');
+
+                card.innerHTML = `
+                    <div class="text-center py-4 md:py-6 animate-float">
+                        <h2 class="text-3xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-red-500 to-orange-500 mb-4 md:mb-6 drop-shadow-lg">
+                            ${story.title}
+                        </h2>
+                        ${story.subtitle ? `<h3 class="text-lg md:text-xl text-orange-200 mb-6 font-medium">${formattedSubtitle}</h3>` : ''}
+                        <p class="text-gray-200 text-lg md:text-xl leading-relaxed mb-8 md:mb-12">
+                            ${formattedText}
+                        </p>
+                        <button onclick="window.handleNext()" class="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold text-lg md:text-xl py-3 px-8 rounded-full shadow-[0_0_30px_rgba(255,80,0,0.5)] hover:shadow-[0_0_40px_rgba(255,100,0,0.8)] transition-all transform hover:scale-105">
+                            ${story.buttonText}
+                        </button>
+                    </div>
+                `;
+            } else {
+                if (phase === 'story') {
+                    card.innerHTML = `
+                        <div class="min-h-[300px] md:min-h-[400px] flex flex-col justify-center items-center text-center animate-fade-in">
+                            <h3 class="text-2xl md:text-4xl font-bold text-orange-400 mb-6 border-b-2 border-orange-500/30 pb-4 w-full">
+                                ${story.title}
+                            </h3>
+                            <p class="text-gray-100 text-xl md:text-2xl leading-relaxed italic bg-black/40 p-6 md:p-8 rounded-2xl border border-orange-600/30 shadow-inner w-full">
+                                ${story.text}
+                            </p>
+                            <div class="mt-8 md:mt-12 flex justify-center w-full">
+                                <button onclick="window.handleRevealActivity()" class="flex items-center justify-center gap-3 bg-orange-600/20 border-2 border-orange-500 hover:bg-orange-500 hover:text-white text-orange-400 font-bold text-lg md:text-xl py-3 px-6 md:px-8 rounded-xl transition-all group">
+                                    Revelar Dinámica <span class="text-xl md:text-2xl group-hover:scale-125 transition-transform inline-block">⚡</span>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else if (phase === 'activity') {
+                    let optionsHtml = '';
+                    if (story.activity.options) {
+                        optionsHtml = `
+                            <div class="space-y-3 md:space-y-4 mt-6">
+                                ${story.activity.options.map(opt => `
+                                    <div class="bg-black/50 border border-orange-500/30 p-4 md:p-5 rounded-xl text-lg md:text-xl text-gray-200 hover:bg-orange-900/30 hover:border-orange-400 transition-colors text-center">
+                                        ${opt}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                    }
+
+                    card.innerHTML = `
+                        <div class="min-h-[300px] md:min-h-[400px] flex flex-col justify-center items-center text-center animate-fade-in">
+                            <div class="bg-orange-900/20 border-2 border-orange-500/50 p-6 md:p-8 rounded-2xl w-full">
+                                <h4 class="text-xl md:text-2xl text-orange-400 font-extrabold mb-4 md:mb-6 flex items-center justify-center gap-3 uppercase tracking-wide">
+                                    ${story.activity.title}
+                                </h4>
+                                <p class="text-white text-lg md:text-2xl font-medium mb-6 md:mb-8 leading-snug">
+                                    ${story.activity.question}
+                                </p>
+                                ${optionsHtml}
+                            </div>
+
+                            <div class="mt-8 md:mt-12 flex justify-between items-center flex-wrap gap-4 w-full">
+                                <p class="text-gray-400 text-base md:text-lg animate-pulse w-full sm:w-auto text-center sm:text-left">
+                                    Esperando respuestas en Teams... 💬
+                                </p>
+                                <button onclick="window.handleNext()" class="flex items-center justify-center gap-2 bg-transparent text-orange-400 hover:text-orange-300 font-bold text-lg md:text-xl transition-colors group w-full sm:w-auto">
+                                    Siguiente historia 
+                                    <span class="transform group-hover:translate-x-2 transition-transform text-xl md:text-2xl inline-block">→</span>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // --- CONTROLADORES DE EVENTOS ---
+        window.handleNext = function() {
+            if (currentStep < storiesData.length - 1) {
+                currentStep++;
+            } else {
+                currentStep = 0; // Reiniciar si llega al final
+            }
+            phase = 'story'; // Siempre volver a la historia al avanzar
+            renderContent();
+        };
+
+        window.handleRevealActivity = function() {
+            phase = 'activity';
+            renderContent();
+        };
+
+        // --- INICIALIZACIÓN ---
+        window.onload = function() {
+            generateBackground();
+            renderContent();
+        };
+
+    </script>
+</body>
+</html>
